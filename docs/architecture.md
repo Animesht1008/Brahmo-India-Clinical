@@ -6,40 +6,40 @@
 ```
 ┌─────────────────────────────────────────────────────────┐
 │                    REACT FRONTEND                       │
-│  Patient Selector → Query Input → Side-by-side Output  │
+│  Patient Selector → Query Input → Side-by-side Output   │
 └────────────────────────┬────────────────────────────────┘
                          │ POST /api/claude
-┌────────────────────────▼────────────────────────────────┐
-│                  NEXT.JS API LAYER                      │
-│                                                         │
+┌────────────────────────▼───────────────────────────────┐
+│                  NEXT.JS API LAYER                     │
+│                                                        │
 │  ┌─────────────────┐    ┌──────────────────────────┐   │
-│  │  Safety Engine  │    │    Prompt Composer        │   │
-│  │                 │    │                           │   │
-│  │ • eGFR calc     │───▶│ • Fetch RSSDI/CSI rules  │   │
-│  │ • DDI check     │    │ • Inject Indian drugs ₹   │   │
-│  │ • HF flags      │    │ • Add safety flags        │   │
-│  │ • CHA2DS2-VASc  │    │ • Apollo contacts         │   │
-│  │ • Hyperkalemia  │    │ • Insurance context       │   │
-│  └─────────────────┘    └──────────────┬─────────────┘  │
-│                                        │                │
-│  ┌─────────────────────────────────────▼─────────────┐  │
-│  │              Claude API (Parallel calls)          │  │
-│  │                                                   │  │
-│  │  Generic prompt ─────────────── Generic response  │  │
-│  │  Option C prompt (enriched) ──── India response   │  │
-│  └───────────────────────────────────────────────────┘  │
-└────────────────────────┬────────────────────────────────┘
+│  │  Safety Engine  │    │    Prompt Composer       │   │
+│  │                 │    │                          │   │
+│  │ • eGFR calc     │───▶│ • Fetch RSSDI/CSI rules │   │
+│  │ • DDI check     │    │ • Inject Indian drugs ₹  │   │
+│  │ • HF flags      │    │ • Add safety flags       │   │
+│  │ • CHA2DS2-VASc  │    │ • Apollo contacts        │   │
+│  │ • Hyperkalemia  │    │ • Insurance context      │   │
+│  └─────────────────┘    └──────────────┬───────────┘   │
+│                                        │               │
+│  ┌─────────────────────────────────────▼─────────────┐ │
+│  │              Claude API (Parallel calls)          │ │
+│  │                                                   │ │
+│  │  Generic prompt ─────────────── Generic response  │ │
+│  │  Option C prompt (enriched) ──── India response   │ │
+│  └───────────────────────────────────────────────────┘ │
+└────────────────────────┬───────────────────────────────┘
                          │ Supabase queries
-┌────────────────────────▼────────────────────────────────┐
-│                   SUPABASE (PostgreSQL)                 │
-│                                                         │
-│  drugs ──────────────── condition_tags: JSONB array     │
+┌────────────────────────▼───────────────────────────────┐
+│                   SUPABASE (PostgreSQL)                │
+│                                                        │
+│  drugs ──────────────── condition_tags: JSONB array    │
 │  indian_guidelines ───── source_id: RSSDI/CSI/IHRS     │
-│  drug_interactions ───── cross-condition pairs          │
-│  hospital_formulary ──── Apollo Chennai stock           │
-│  patients ─────────────── 6 demo profiles               │
-│  hospital_contacts ────── department extensions         │
-└─────────────────────────────────────────────────────────┘
+│  drug_interactions ───── cross-condition pairs         │
+│  hospital_formulary ──── Apollo Chennai stock          │
+│  patients ─────────────── 6 demo profiles              │
+│  hospital_contacts ────── department extensions        │
+└────────────────────────────────────────────────────────┘
 ```
 
 ---
