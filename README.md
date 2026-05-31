@@ -37,6 +37,6 @@ Generic AI cites ADA guidelines, uses US drug names, and has no awareness of Ind
 
 - **Frontend**: Next.js 15 + TypeScript + Tailwind CSS
 - **Database**: Supabase (PostgreSQL)
-- **AI**: Anthropic Claude API (claude-sonnet-4-20250514)
+- **AI**: Anthropic Claude API (claude-sonnet-4-20250514)/Groq API key (free)
 - **Safety Engine**: Custom TypeScript
 - **Deployment**: Vercel (zero config with Next.js)
