@@ -10,14 +10,12 @@ export function useAuth() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Get current session
     supabase().auth.getSession().then(({ data }) => {
       setUser(data.session?.user ?? null);
       if (!data.session) router.replace('/login');
       setLoading(false);
     });
 
-    // Listen for changes
     const { data: { subscription } } = supabase().auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
       if (!session) router.replace('/login');
