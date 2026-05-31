@@ -22,7 +22,6 @@ export default function LoginPage() {
   const [error,    setError]    = useState('');
   const [checking, setChecking] = useState(true);
 
-  // If already logged in, go straight to app
   useEffect(() => {
     supabase().auth.getSession().then(({ data }) => {
       if (data.session) router.replace('/');
