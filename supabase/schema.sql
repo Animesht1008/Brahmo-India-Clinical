@@ -1,15 +1,7 @@
--- ============================================================
--- BRAHMO India Clinical AI — Unified Schema
--- ONE set of tables for ALL conditions (diabetes, cardiovascular, ...)
--- Adding condition #3 = new rows only, ZERO code changes
--- ============================================================
-
--- Enable UUID generation
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
--- ============================================================
 -- TABLE 1: drugs — ALL drugs across ALL conditions
--- ============================================================
+
 CREATE TABLE IF NOT EXISTS drugs (
   id                    UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   generic_name          TEXT NOT NULL,
@@ -38,9 +30,8 @@ CREATE INDEX idx_drugs_condition_tags ON drugs USING gin(condition_tags);
 CREATE INDEX idx_drugs_generic_normalized ON drugs(generic_name_normalized);
 CREATE INDEX idx_drugs_nlem ON drugs(nlem_status);
 
--- ============================================================
 -- TABLE 2: drug_interactions — cross-condition pairs
--- ============================================================
+
 CREATE TABLE IF NOT EXISTS drug_interactions (
   id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   drug_a_id       UUID REFERENCES drugs(id),
@@ -60,9 +51,8 @@ CREATE INDEX idx_interactions_drug_a ON drug_interactions(drug_a_name);
 CREATE INDEX idx_interactions_drug_b ON drug_interactions(drug_b_name);
 CREATE INDEX idx_interactions_severity ON drug_interactions(severity);
 
--- ============================================================
 -- TABLE 3: indian_guidelines — ALL guidelines, ALL conditions
--- ============================================================
+
 CREATE TABLE IF NOT EXISTS indian_guidelines (
   id                UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   source_id         TEXT NOT NULL CHECK (source_id IN ('RSSDI','CSI','MoHFW_STG','IHRS','ICMR','ISN')),
@@ -81,9 +71,8 @@ CREATE INDEX idx_guidelines_source ON indian_guidelines(source_id);
 CREATE INDEX idx_guidelines_condition ON indian_guidelines(condition);
 CREATE INDEX idx_guidelines_tags ON indian_guidelines USING gin(condition_tags);
 
--- ============================================================
 -- TABLE 4: hospital_formulary — Apollo Chennai availability
--- ============================================================
+
 CREATE TABLE IF NOT EXISTS hospital_formulary (
   id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   drug_id         UUID REFERENCES drugs(id),
@@ -96,9 +85,8 @@ CREATE TABLE IF NOT EXISTS hospital_formulary (
   updated_at      TIMESTAMPTZ DEFAULT NOW()
 );
 
--- ============================================================
 -- TABLE 5: patients — 6 demo profiles + extensible
--- ============================================================
+
 CREATE TABLE IF NOT EXISTS patients (
   id                  UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   patient_code        TEXT UNIQUE NOT NULL,  -- P1, P2, ... P6
@@ -118,9 +106,8 @@ CREATE TABLE IF NOT EXISTS patients (
   created_at          TIMESTAMPTZ DEFAULT NOW()
 );
 
--- ============================================================
 -- TABLE 6: hospital_contacts — Apollo Chennai departments
--- ============================================================
+
 CREATE TABLE IF NOT EXISTS hospital_contacts (
   id          UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   department  TEXT NOT NULL,
