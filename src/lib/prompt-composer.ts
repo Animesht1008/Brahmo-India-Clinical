@@ -1,9 +1,3 @@
-// ============================================================
-// BRAHMO India Clinical AI — Prompt Composer
-// Injects Indian-specific context BEFORE the LLM sees the query
-// This is what makes Option C dramatically better than generic AI
-// ============================================================
-
 import { createServerClient } from './supabase';
 import { getHbA1cTarget } from './calculators';
 import type {
@@ -18,39 +12,30 @@ import type {
   ComposedPrompt,
 } from './types';
 
-// ============================================================
-// FETCH CLINICAL CONTEXT from Supabase
-// ============================================================
-
 export async function fetchClinicalContext(
   patient: Patient,
   safetyResult: SafetyCheckResult
 ): Promise<ClinicalContext> {
   const supabase = createServerClient();
 
-  // Determine which conditions to query — supports multi-condition patients
   const conditionTags = patient.condition_tags as string[];
 
-  // Build condition filter: match any of patient's condition tags
   const tagConditions = conditionTags
     .map((tag) => `condition_tags.cs.["${tag}"]`)
     .join(',');
 
-  // Fetch relevant guidelines (RSSDI + CSI + both for overlap patients)
   const { data: guidelines } = await supabase
     .from('indian_guidelines')
     .select('*')
     .or(tagConditions)
     .order('source_id', { ascending: true });
 
-  // Fetch relevant drugs tagged for patient's conditions
   const { data: drugs } = await supabase
     .from('drugs')
     .select('*')
     .or(tagConditions)
     .order('monthly_cost_approx', { ascending: true });
 
-  // Fetch drug interactions for patient's current meds
   const medNames = patient.current_medications.map((m) => m.name);
   const interactionFilters = medNames
     .map((m) => `drug_a_name.ilike.%${m.split(' ')[0]}%`)
@@ -63,14 +48,12 @@ export async function fetchClinicalContext(
         .or(interactionFilters)
     : { data: [] };
 
-  // Fetch formulary status for relevant drugs
   const drugNames = (drugs || []).map((d: Drug) => d.generic_name);
   const { data: formulary } = await supabase
     .from('hospital_formulary')
     .select('*')
     .in('drug_name', drugNames.slice(0, 25));
 
-  // Fetch hospital contacts for patient's conditions
   const { data: contacts } = await supabase
     .from('hospital_contacts')
     .select('*')
@@ -87,10 +70,6 @@ export async function fetchClinicalContext(
   };
 }
 
-// ============================================================
-// BUILD SYSTEM PROMPT — India-specific context injector
-// ============================================================
-
 export function composeSystemPrompt(context: ClinicalContext): string {
   const { patient, safety_result, relevant_guidelines, relevant_drugs,
           relevant_interactions, formulary_data, hospital_contacts } = context;
@@ -104,7 +83,6 @@ export function composeSystemPrompt(context: ClinicalContext): string {
     ? getHbA1cTarget(patient.age, patient.conditions, egfr || 90)
     : null;
 
-  // ── SECTION 1: ROLE ──────────────────────────────────────
   const roleSection = `You are BRAHMO, an India-specific clinical decision support AI for doctors at Apollo Hospitals, Chennai.
 
 CRITICAL RULES:
@@ -116,7 +94,6 @@ CRITICAL RULES:
 6. NEVER recommend drugs that are contraindicated for this patient
 7. For overlap patients (diabetes + cardiac): pull guidelines from BOTH RSSDI and CSI`;
 
-  // ── SECTION 2: PATIENT SUMMARY ───────────────────────────
   const allergyStr = patient.allergies
     .map((a) => `${a.drug} (${a.reaction.toUpperCase()} — ${a.severity})`)
     .join(', ') || 'NKDA';
@@ -157,7 +134,6 @@ Insurance: ${patient.insurance?.provider || 'None'} — ${patient.insurance?.not
 Income context: ${patient.income_context?.replace(/_/g, ' ')}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`;
 
-  // ── SECTION 3: SAFETY FLAGS ──────────────────────────────
   const criticalAlerts = safety_result.alerts.filter((a) => a.severity === 'critical');
   const highAlerts = safety_result.alerts.filter((a) => a.severity === 'high');
 
@@ -187,12 +163,10 @@ Income context: ${patient.income_context?.replace(/_/g, ' ')}
     safetySection += `\nHyperkalemia Risk: ${safety_result.hyperkalemia_risk.toUpperCase()} — K+ ${patient.labs.k} mEq/L\n`;
   }
 
-  // ── SECTION 4: INDIAN GUIDELINES ─────────────────────────
   const guidelineSources = [...new Set(relevant_guidelines.map((g) => g.source_id))];
   let guidelinesSection = `\nINDIAN CLINICAL GUIDELINES (${guidelineSources.join(' + ')}):\n`;
   guidelinesSection += `Sources: ${guidelineSources.join(', ')} — Use THESE, not ADA/ACC-AHA\n\n`;
 
-  // Group by source for clarity
   const guidelinesBySource: Record<string, IndianGuideline[]> = {};
   relevant_guidelines.forEach((g) => {
     if (!guidelinesBySource[g.source_id]) guidelinesBySource[g.source_id] = [];
@@ -209,10 +183,8 @@ Income context: ${patient.income_context?.replace(/_/g, ' ')}
     guidelinesSection += '\n';
   });
 
-  // ── SECTION 5: INDIAN DRUGS WITH ₹ PRICES ────────────────
   let drugsSection = '\nINDIAN DRUG DATABASE (₹ MRP — Verified):\n';
 
-  // Categorize drugs
   const diabetesDrugs = relevant_drugs.filter((d) =>
     (d.condition_tags as string[]).includes('diabetes')
   );
@@ -251,7 +223,6 @@ Income context: ${patient.income_context?.replace(/_/g, ' ')}
     overlapDrugs.forEach((d) => { drugsSection += formatDrugLine(d) + '\n'; });
   }
 
-  // ── SECTION 6: HOSPITAL CONTACTS ─────────────────────────
   let contactsSection = '\nAPOLLO CHENNAI — RELEVANT DEPARTMENT CONTACTS:\n';
   hospital_contacts.slice(0, 8).forEach((c) => {
     contactsSection += `  • ${c.role} (${c.department}): ${c.name || ''} — Ext. ${c.extension}`;
@@ -259,7 +230,6 @@ Income context: ${patient.income_context?.replace(/_/g, ' ')}
     contactsSection += '\n';
   });
 
-  // ── SECTION 7: RESPONSE INSTRUCTIONS ─────────────────────
   const responseInstructions = `
 RESPONSE FORMAT REQUIREMENTS:
 1. Start with critical safety flags (if any) — these MUST come first
@@ -283,28 +253,20 @@ ${isMultiCondition ? '9. ⭐ OVERLAP CASE: Pull guidelines from BOTH RSSDI AND C
   ].join('\n');
 }
 
-// ============================================================
-// MAIN COMPOSE FUNCTION — Entry point
-// ============================================================
-
 export async function composePrompt(
   patient: Patient,
   safetyResult: SafetyCheckResult,
   userQuery: string
 ): Promise<ComposedPrompt> {
-  // Fetch all clinical context
   const context = await fetchClinicalContext(patient, safetyResult);
 
-  // Build system prompt
   const systemPrompt = composeSystemPrompt(context);
 
-  // Build user message with clinical question
   const userMessage = `Doctor's question: "${userQuery}"
 
 Patient: ${patient.display_name}
 Please provide India-specific guidance citing RSSDI/CSI guidelines, Indian drug brands with ₹ prices, and Apollo Chennai contacts as relevant.`;
 
-  // Summary for UI display
   const guidelineSources = [
     ...new Set(context.relevant_guidelines.map((g) => `${g.source_id} ${g.guideline_year || '2022'}`)),
   ];
