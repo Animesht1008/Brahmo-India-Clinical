@@ -1,13 +1,3 @@
--- ============================================================
--- BRAHMO India Clinical AI — Seed Data
--- Sources: RSSDI 2022, CSI STEMI Guidelines (IHJ 2017 + 2022 update),
---          NLEM 2022, 1mg.com / PharmEasy.in (prices verified May 2025)
--- ============================================================
-
--- ============================================================
--- DRUGS — Diabetes (condition_tags: ["diabetes"])
--- ============================================================
-
 INSERT INTO drugs (generic_name, drug_class, drug_subclass, indian_brand_name, alternate_brands, manufacturer, mrp_price, monthly_cost_approx, nlem_status, jan_aushadhi_available, renal_dosing, hf_safe, weight_effect, hypoglycemia_risk, condition_tags, contraindications, key_interactions, notes) VALUES
 
 -- Metformin 500mg/1000mg
@@ -284,9 +274,7 @@ INSERT INTO drugs (generic_name, drug_class, drug_subclass, indian_brand_name, a
  ARRAY['Warfarin (doubles INR — CRITICAL)', 'Digoxin (doubles levels)', 'Beta-blockers (bradycardia)', 'Statins (myopathy risk)'],
  'NLEM 2022. Cardioversion of AF/VT. Multiple interactions. Long half-life (40-55 days). Monitor TFT, LFT, PFT, eye exam annually.');
 
--- ============================================================
 -- DRUG INTERACTIONS — 20+ pairs including cross-condition
--- ============================================================
 
 INSERT INTO drug_interactions (drug_a_name, drug_b_name, severity, mechanism, clinical_effect, management, condition_tags, evidence_level) VALUES
 
@@ -335,9 +323,7 @@ INSERT INTO drug_interactions (drug_a_name, drug_b_name, severity, mechanism, cl
 
 ('Pioglitazone', 'Carvedilol', 'moderate', 'Both cause fluid retention; pioglitazone worsens HF', 'Additive fluid retention, cardiac decompensation', 'CONTRAINDICATION: Do not use pioglitazone with carvedilol in heart failure patients. Use SGLT2i instead.', '["diabetes","heart_failure"]'::JSONB, 'A');
 
--- ============================================================
 -- INDIAN GUIDELINES — RSSDI (Diabetes)
--- ============================================================
 
 INSERT INTO indian_guidelines (source_id, guideline_year, condition, section, recommendation, evidence_level, class_of_rec, condition_tags, clinical_context) VALUES
 
@@ -372,9 +358,7 @@ INSERT INTO indian_guidelines (source_id, guideline_year, condition, section, re
 
 ('RSSDI', 2022, 'T2DM', 'HbA1c Targets — Diabetes + HF', 'In T2DM with heart failure, RSSDI recommends a slightly relaxed HbA1c target of 7.0-8.0% to avoid hypoglycemia (hypoglycemia in HF patients increases risk of cardiac arrhythmias and sudden death). Avoid agents causing hypoglycemia (sulfonylureas) in HF patients. SGLT2i reduces HbA1c with very low hypoglycemia risk.', 'B', 'Class IIa', '["diabetes","heart_failure"]'::JSONB, 'T2DM with concurrent heart failure'),
 
--- ============================================================
 -- GUIDELINES — CSI (Cardiovascular)
--- ============================================================
 
 ('CSI', 2022, 'STEMI', 'Reperfusion — Primary PCI', 'Primary PCI is the preferred reperfusion strategy for STEMI when available within 120 minutes of first medical contact (FMC-to-balloon ≤ 120 min). In India, primary PCI should be the default at PCI-capable hospitals. TIME IS MUSCLE — every 30-minute delay increases mortality by 7.5%.', 'A', 'Class I', '["cardiovascular"]'::JSONB, 'STEMI within 12 hours, PCI-capable hospital available'),
 
@@ -398,9 +382,7 @@ INSERT INTO indian_guidelines (source_id, guideline_year, condition, section, re
 
 ('CSI', 2022, 'Cardiovascular', 'Statin therapy post-ACS', 'High-intensity statin therapy (Atorvastatin 80mg OD or Rosuvastatin 40mg OD) should be initiated in ALL post-ACS patients regardless of baseline LDL. Target LDL < 55 mg/dL for very high risk (post-ACS). Continue indefinitely. CSI: Do not interrupt statin therapy — statin withdrawal post-ACS is associated with worse outcomes.', 'A', 'Class I', '["cardiovascular"]'::JSONB, 'Post-ACS statin therapy'),
 
--- ============================================================
 -- OVERLAP GUIDELINES — Diabetes + Cardiovascular
--- ============================================================
 
 ('RSSDI', 2022, 'T2DM+Heart Failure', 'SGLT2i in Diabetes + HF', 'SGLT2 inhibitors (empagliflozin, dapagliflozin) provide DUAL BENEFIT in T2DM + HF: both glucose lowering AND reduction in HF hospitalizations (35% reduction, EMPEROR trial). RSSDI strongly recommends SGLT2i as preferred diabetes drug in T2DM + HFrEF. Continue even if eGFR 30-60 (HF/CV benefit preserved).', 'A', 'Class I', '["diabetes","heart_failure","cardiovascular"]'::JSONB, 'T2DM + HFrEF — SGLT2i as dual-purpose therapy'),
 
@@ -408,9 +390,8 @@ INSERT INTO indian_guidelines (source_id, guideline_year, condition, section, re
 
 ('CSI', 2022, 'T2DM+Heart Failure', 'Glucose targets in HF + DM', 'In T2DM with heart failure, avoid aggressive glucose lowering. Target HbA1c 7.0-8.0%. Hypoglycemia in HF precipitates arrhythmias and acute cardiac events. Use drugs with low hypoglycemia risk: SGLT2i (very low risk), DPP4i/Teneligliptin (very low risk), Metformin (low risk). Avoid sulfonylureas and high insulin doses that may cause hypoglycemia.', 'B', 'Class IIa', '["diabetes","heart_failure","cardiovascular"]'::JSONB, 'Blood glucose targets in HF + DM overlap patient');
 
--- ============================================================
+
 -- HOSPITAL CONTACTS — Apollo Chennai
--- ============================================================
 
 INSERT INTO hospital_contacts (department, role, name, extension, notes, available, condition_tags) VALUES
 ('Endocrinology', 'Diabetes Educator', 'Sister Lakshmi', '3345', 'Hindi/Tamil/English speaking. Provides structured diabetes education, SMBG training, insulin technique instruction.', 'Mon-Sat 9AM-5PM', '["diabetes"]'::JSONB),
@@ -426,9 +407,7 @@ INSERT INTO hospital_contacts (department, role, name, extension, notes, availab
 ('Blood Bank', 'Blood Bank', NULL, '5001', 'O-negative blood available (2 units standby). Cross-match results in 45 min.', '24x7', '["cardiovascular"]'::JSONB),
 ('Pharmacy', 'Hospital Pharmacy', NULL, '2200', 'Main pharmacy. Formulary queries, drug availability, generic substitution.', '24x7', '["diabetes","cardiovascular","heart_failure"]'::JSONB);
 
--- ============================================================
 -- PATIENTS — 6 Demo Profiles
--- ============================================================
 
 INSERT INTO patients (patient_code, display_name, scenario_label, age, gender, bmi, conditions, current_medications, allergies, labs, vitals, insurance, income_context, condition_tags) VALUES
 
@@ -492,9 +471,7 @@ INSERT INTO patients (patient_code, display_name, scenario_label, age, gender, b
  'middle_class',
  '["diabetes","cardiovascular","heart_failure"]'::JSONB);
 
--- ============================================================
 -- HOSPITAL FORMULARY — Apollo Chennai
--- ============================================================
 
 INSERT INTO hospital_formulary (drug_name, in_stock, stock_level, pharmacy_notes, department, formulary_tier)
 SELECT
