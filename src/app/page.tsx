@@ -3,7 +3,6 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import type { SafetyAlert } from '@/lib/types';
 import { useAuth } from '@/lib/useAuth';
 
-// ── ECG Canvas ────────────────────────────────────────────────────────────────
 function ECGBackground() {
   const ref = useRef<HTMLCanvasElement>(null);
   useEffect(() => {
@@ -45,7 +44,6 @@ function ECGBackground() {
   return <canvas ref={ref} id="ecg-canvas"/>;
 }
 
-// ── Logo ──────────────────────────────────────────────────────────────────────
 function Logo() {
   return(
     <svg width="34" height="34" viewBox="0 0 36 36" fill="none">
@@ -68,7 +66,6 @@ function Logo() {
   );
 }
 
-// ── Types ─────────────────────────────────────────────────────────────────────
 type LabStatus = 'ok'|'warn'|'high'|'critical';
 interface PatientType {
   code: string; tag: string; icon: string; name: string;
@@ -79,7 +76,6 @@ interface PatientType {
   isAdhoc?: boolean; adhocData?: any; starred?: boolean;
 }
 
-// ── Static patients ───────────────────────────────────────────────────────────
 const INITIAL_PATIENTS: PatientType[] = [
   { code:'P1',tag:'diabetes',icon:'🩸',name:'Rajesh Kumar',age:48,gender:'M',label:'Failing Metformin',
     conditions:['T2DM (3yr)','Hypertension'],
@@ -113,7 +109,6 @@ const INITIAL_PATIENTS: PatientType[] = [
     defaultQuery:'T2DM + HF (EF 30%) + CKD 3a, K+ 5.1. Review medications and recommend diabetes management.' },
 ];
 
-// ── 3-dot Context Menu — fixed position, floats above everything ──────────────
 interface ContextMenuProps {
   patient: PatientType;
   anchorRect: DOMRect;
@@ -157,7 +152,6 @@ function ContextMenu({ patient, anchorRect, onStar, onRename, onUpdate, onDelete
   );
 }
 
-// ── Add/Edit Patient Form ─────────────────────────────────────────────────────
 const CONDITIONS_PRESETS = [
   'T2DM','Hypertension','CKD Stage 3a','CKD Stage 3b','Heart Failure (HFrEF)',
   'Atrial Fibrillation','NAFLD','Obesity','CAD','Post-MI','Hypothyroidism',
@@ -252,7 +246,6 @@ function AddPatientForm({ onAdd, onClose, nextCode, initialData }: AddPatientFor
     onClose();
   };
 
-  // Shared input styles — dark bg so option text is visible
   const inputSt: React.CSSProperties = {background:'rgba(8,16,32,0.9)',border:'1px solid rgba(61,139,255,0.25)',color:'#dce8ff',fontFamily:'inherit'};
   const inputCls = "w-full rounded-lg px-3 py-2 text-sm focus:outline-none transition-all";
   const steps = ['Patient Info','Conditions & Meds','Labs & Vitals','Insurance & Query'];
@@ -431,7 +424,6 @@ function AddPatientForm({ onAdd, onClose, nextCode, initialData }: AddPatientFor
   );
 }
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
 const SC: Record<string,string> = {ok:'status-ok',warn:'status-warn',high:'status-high',critical:'status-critical'};
 const SCFG: Record<string,{bar:string,bg:string,text:string,icon:string}> = {
   critical:{bar:'bg-rose-500',bg:'bg-rose-500/8 border-rose-500/25',text:'text-rose-300',icon:'🚨'},
@@ -452,11 +444,9 @@ interface APIResult {
   safety_summary:{ckd_stage?:string;egfr?:number;cha2ds2_vasc?:number;hyperkalemia_risk?:string;critical_alerts_count:number};
 }
 
-// ── Main App ──────────────────────────────────────────────────────────────────
 export default function BrahmoApp() {
   const { user, loading: authLoading, signOut, displayName, initials } = useAuth();
 
-  // SSR-safe: always start with defaults, restore from localStorage after hydration
   const [patients, setPatients] = useState<PatientType[]>(INITIAL_PATIENTS);
   const [nextNum,  setNextNum]  = useState(7);
   const [active,   setActive]   = useState<PatientType>(INITIAL_PATIENTS[5]);
@@ -476,7 +466,6 @@ export default function BrahmoApp() {
   const [activeMenu, setActiveMenu] = useState<{key:string; rect:DOMRect}|null>(null);
   const [sideOpen,  setSideOpen]  = useState(false);
 
-  // Restore from localStorage after hydration (runs client-side only)
   useEffect(() => {
     try {
       const savedRaw    = localStorage.getItem('brahmo_patients');
@@ -484,7 +473,6 @@ export default function BrahmoApp() {
       const savedKey    = localStorage.getItem('brahmo_active_key');
       let allPatients   = INITIAL_PATIENTS;
       if (savedRaw) {
-        // Only restore ADHOC patients — never re-add static P1-P6
         const adhoc = (JSON.parse(savedRaw) as PatientType[]).filter(p => p.isAdhoc);
         if (adhoc.length > 0) {
           allPatients = [...INITIAL_PATIENTS, ...adhoc];
@@ -497,10 +485,8 @@ export default function BrahmoApp() {
         if (found) { setActive(found); setQuery(found.defaultQuery); }
       }
     } catch {}
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // run once after mount
 
-  // Persist changes — only save ADHOC patients (statics are hardcoded)
   useEffect(() => {
     try {
       const adhocOnly = patients.filter(p => p.isAdhoc);
@@ -524,27 +510,23 @@ export default function BrahmoApp() {
 
   },[]);
 
-  // Add new patient
   const handleAdd = useCallback((p:PatientType)=>{
     setPatients(ps=>[...ps,p]);
     setNextNum(n=>n+1);
     pickPatient(p);
   },[pickPatient]);
 
-  // Edit existing adhoc patient (reuse form, keep same code)
   const handleEdit = useCallback((updated:PatientType)=>{
     setPatients(ps=>ps.map(p=>patientKey(p)===patientKey(editTarget!)?updated:p));
     if(patientKey(active)===patientKey(editTarget!)) { setActive(updated); setQuery(updated.defaultQuery); }
     setEditTarget(null);
   },[editTarget, active]);
 
-  // Star toggle
   const toggleStar = useCallback((key:string)=>{
     setPatients(ps=>ps.map(p=>patientKey(p)===key?{...p,starred:!p.starred}:p));
     if(patientKey(active)===key) setActive(a=>({...a,starred:!a.starred}));
   },[active]);
 
-  // Delete
   const deletePatient = useCallback((key:string)=>{
     setPatients(ps=>{
       const next = ps.filter(p=>patientKey(p)!==key);
@@ -553,7 +535,6 @@ export default function BrahmoApp() {
     });
   },[active, pickPatient]);
 
-  // Rename confirm
   const confirmRename = useCallback((key:string)=>{
     if(!renameVal.trim()){setRenameTarget(null);return;}
     setPatients(ps=>ps.map(p=>patientKey(p)===key?{...p,name:renameVal,label:renameVal}:p));
@@ -589,7 +570,6 @@ export default function BrahmoApp() {
   const nextCode=`P${nextNum}`;
   const inputStyle:React.CSSProperties={background:'rgba(255,255,255,0.03)',border:'1px solid rgba(61,139,255,0.2)',color:'var(--text-primary)',fontFamily:'inherit'};
 
-  // Auth guard — show spinner while checking session OR while redirect is in-flight
   if (authLoading || !user) {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{background:'#04080f'}}>
@@ -598,7 +578,6 @@ export default function BrahmoApp() {
     );
   }
 
-  // Sorted: starred first, then original order
   const sortedPatients = [...patients].sort((a,b)=>(b.starred?1:0)-(a.starred?1:0));
 
   const SidebarContent = () => (
