@@ -1,67 +1,6 @@
 # Architecture Notes
 ## BRAHMO India Clinical AI — Option C
 
----
-
-## The Core Design Principle: One Schema, Infinite Conditions
-
-The assessment asks: *"If adding condition #3 requires new tables or code changes, your architecture doesn't scale."*
-
-**Here is exactly how we avoided that:**
-
-### ❌ What We Did NOT Build
-```sql
--- WRONG: Condition-specific tables
-diabetes_drugs
-cardiology_drugs
-diabetes_guidelines
-cardiology_guidelines
-```
-
-### ✅ What We Built
-```sql
--- RIGHT: Unified tables tagged by condition
-drugs              -- ALL drugs, tagged: condition_tags: ["diabetes", "cardiovascular"]
-indian_guidelines  -- ALL guidelines, tagged by condition
-drug_interactions  -- ALL DDI pairs, including cross-condition
-hospital_formulary -- ALL formulary data
-patients           -- ALL patients, tagged by condition(s)
-```
-
-The `condition_tags` JSONB column on every table is the key. A drug like Empagliflozin carries `["diabetes", "cardiovascular", "heart_failure"]` — it appears in results for any of those conditions automatically.
-
----
-
-## Adding Condition #3: Respiratory (Asthma + COPD)
-
-If asked at the demo: *"Walk me through adding respiratory medicine tomorrow."*
-
-**Answer:**
-
-```
-1. Research: Indian Chest Society (ICS) guidelines for asthma + COPD
-   Time: 1-2 hours
-
-2. Drug data: Source inhaler brands + ₹ MRP from 1mg.com
-   (e.g., Budecort, Foracort, Seroflo — Indian brands not in US guidelines)
-   Time: 1 hour
-
-3. Database:
-   INSERT INTO drugs WHERE condition_tags includes "respiratory"
-   INSERT INTO indian_guidelines WHERE source_id = 'ICS'
-   INSERT INTO drug_interactions (e.g., beta-agonist + beta-blocker = contraindication)
-   Time: 1-2 hours
-
-4. Code changes: ZERO
-   - Safety engine: already works with any condition tags
-   - Prompt composer: already fetches guidelines by tag
-   - UI: add patient with condition_tags: ["respiratory"]
-   
-Total: ~3-4 hours research + data loading. No new tables, no code changes.
-```
-
----
-
 ## System Architecture
 
 ```
@@ -159,5 +98,3 @@ The LLM then sees a complete Indian clinical picture BEFORE it processes the doc
 | Suggests Pioglitazone for DM+HF patient | CONTRAINDICATION flagged before LLM sees query |
 
 ---
-
-*BRAHMO Version 1.0 — Assessment submission, May 2025*
