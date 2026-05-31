@@ -1,9 +1,3 @@
-// ============================================================
-// BRAHMO India Clinical AI — Safety Engine
-// Works across ALL conditions (diabetes, cardiovascular, overlap)
-// Adding condition #3 = new drug/interaction rows only, zero code changes
-// ============================================================
-
 import { createServerClient } from './supabase';
 import {
   calculateEGFR,
@@ -21,17 +15,12 @@ import type {
   DrugInteraction,
 } from './types';
 
-// ============================================================
-// MAIN SAFETY CHECK — Entry point
-// ============================================================
-
 export async function runSafetyCheck(patient: Patient): Promise<SafetyCheckResult> {
   const supabase = createServerClient();
   const alerts: SafetyAlert[] = [];
   const drugFlags: Record<string, string[]> = {};
   const monitoring: string[] = [];
 
-  // 1. Compute eGFR if labs available
   const creatinine = patient.labs.creatinine;
   const computedEGFR =
     creatinine && patient.age && patient.gender
@@ -40,11 +29,9 @@ export async function runSafetyCheck(patient: Patient): Promise<SafetyCheckResul
   const egfr = computedEGFR || 90;
   const ckdInfo = classifyCKD(egfr);
 
-  // 2. Get all current medication names
   const medNames = patient.current_medications.map((m) => m.name);
   const allMedNamesLower = medNames.map((m) => m.toLowerCase());
 
-  // 3. Fetch drug data for patient's medications from Supabase
   const { data: drugs } = await supabase
     .from('drugs')
     .select('*')
@@ -54,12 +41,10 @@ export async function runSafetyCheck(patient: Patient): Promise<SafetyCheckResul
         .join(',')
     );
 
-  // 4. Check each drug for renal dosing and contraindications
   if (drugs) {
     for (const drug of drugs as Drug[]) {
       const flags: string[] = [];
 
-      // Renal dosing check
       const renalRec = getRenalDosing(drug.renal_dosing, egfr);
       const isStop =
         renalRec.toLowerCase().includes('stop') ||
@@ -92,7 +77,6 @@ export async function runSafetyCheck(patient: Patient): Promise<SafetyCheckResul
         flags.push(`Dose adjust at eGFR ${egfr}`);
       }
 
-      // Heart failure contraindication check
       const hasHF = patient.conditions?.some((c) =>
         c.toLowerCase().includes('heart failure')
       );
@@ -108,7 +92,6 @@ export async function runSafetyCheck(patient: Patient): Promise<SafetyCheckResul
         flags.push('CONTRAINDICATED in HF');
       }
 
-      // Hypoglycemia risk in HF patients
       const hasHFAndHighHypoRisk =
         hasHF && drug.hypoglycemia_risk === 'high';
       if (hasHFAndHighHypoRisk) {
@@ -123,7 +106,6 @@ export async function runSafetyCheck(patient: Patient): Promise<SafetyCheckResul
         flags.push('High hypo risk in HF');
       }
 
-      // Sulfonamide allergy check for sulfonylureas
       const hasSulfonamideAllergy = patient.allergies.some(
         (a) =>
           a.drug.toLowerCase().includes('sulfonamide') ||
@@ -145,7 +127,6 @@ export async function runSafetyCheck(patient: Patient): Promise<SafetyCheckResul
         flags.push('Sulfonamide allergy — avoid');
       }
 
-      // Penicillin allergy check (relevant for STEMI management)
       const hasPenicillinAllergy = patient.allergies.some((a) =>
         a.drug.toLowerCase().includes('penicillin')
       );
@@ -175,7 +156,6 @@ export async function runSafetyCheck(patient: Patient): Promise<SafetyCheckResul
     }
   }
 
-  // 5. Drug-drug interaction check (from Supabase)
   if (medNames.length >= 2) {
     const { data: interactions } = await supabase
       .from('drug_interactions')
@@ -216,7 +196,6 @@ export async function runSafetyCheck(patient: Patient): Promise<SafetyCheckResul
     }
   }
 
-  // 6. Hyperkalemia risk
   const potassium = patient.labs.k;
   if (potassium) {
     const hypokalemiaResult = assessHyperkalemiaRisk(potassium, medNames, egfr);
@@ -237,13 +216,11 @@ export async function runSafetyCheck(patient: Patient): Promise<SafetyCheckResul
     }
   }
 
-  // 7. CKD-specific monitoring
   if (egfr < 60) {
     monitoring.push(`eGFR monitoring every 3 months (current: ${egfr} mL/min — ${ckdInfo.label})`);
     monitoring.push('Urine ACR annually for proteinuria');
   }
 
-  // 8. CHA₂DS₂-VASc for AF patients
   let cha2Score: number | undefined;
   let cha2Components: Record<string, number> | undefined;
   const hasAF = patient.conditions?.some((c) =>
@@ -273,7 +250,6 @@ export async function runSafetyCheck(patient: Patient): Promise<SafetyCheckResul
     });
   }
 
-  // 9. Sort alerts by severity
   const severityOrder = { critical: 0, high: 1, moderate: 2, low: 3 };
   alerts.sort((a, b) => severityOrder[a.severity] - severityOrder[b.severity]);
 
