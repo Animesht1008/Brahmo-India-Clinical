@@ -183,11 +183,7 @@
 - **Perplexity.ai** — finding Indian guideline PDF sources
 - **PubMed / NCBI** — verifying clinical recommendations and drug studies  
 - **1mg.com, PharmEasy.in, Netmeds.com** — drug price verification
-- **Claude.ai** — code generation assistance + data structuring
 - **Google Scholar** — Indian medical journal access
 
 ---
 
-*Data compiled: May 2025*
-*All prices subject to change — verify on 1mg.com before clinical use*
-*This system is for clinical decision support only, not a substitute for physician judgment*
