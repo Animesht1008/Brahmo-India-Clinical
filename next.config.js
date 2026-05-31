@@ -1,8 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Silence Supabase realtime websocket warnings in production
   serverExternalPackages: [],
-  // Required for Vercel deployment with API routes
   async headers() {
     return [
       {
