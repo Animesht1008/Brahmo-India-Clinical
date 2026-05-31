@@ -1,11 +1,3 @@
-// ============================================================
-// BRAHMO India Clinical AI — Clinical Calculators
-// ============================================================
-
-/**
- * CKD-EPI 2021 eGFR Calculation (Race-free equation)
- * Reference: Inker LA et al. NEJM 2021; 385:1737-1749
- */
 export function calculateEGFR(creatinine: number, age: number, gender: 'M' | 'F' | 'Other'): number {
   const isFemale = gender === 'F';
   const kappa = isFemale ? 0.7 : 0.9;
@@ -26,9 +18,6 @@ export function calculateEGFR(creatinine: number, age: number, gender: 'M' | 'F'
   return Math.round(egfr);
 }
 
-/**
- * CKD Stage Classification
- */
 export function classifyCKD(egfr: number): {
   stage: string;
   label: string;
@@ -43,15 +32,11 @@ export function classifyCKD(egfr: number): {
   return { stage: 'G5', label: 'CKD Stage 5 / ESRD', description: 'Kidney failure', color: 'darkred' };
 }
 
-/**
- * Get renal dosing recommendation for a drug at given eGFR
- */
 export function getRenalDosing(renalDosing: Record<string, string>, egfr: number): string {
   if (!renalDosing || Object.keys(renalDosing).length === 0) {
     return 'No specific renal dose adjustment data available';
   }
 
-  // Match eGFR to threshold
   if (egfr < 15 && renalDosing['egfr_lt15']) return renalDosing['egfr_lt15'];
   if (egfr < 30 && renalDosing['egfr_lt30']) return renalDosing['egfr_lt30'];
   if (egfr < 45 && renalDosing['egfr_30_44']) return renalDosing['egfr_30_44'];
@@ -63,11 +48,6 @@ export function getRenalDosing(renalDosing: Record<string, string>, egfr: number
   return 'Normal dosing — no specific adjustment for this eGFR range';
 }
 
-/**
- * CHA₂DS₂-VASc Score Calculator
- * For stroke risk stratification in Atrial Fibrillation
- * Reference: IHRS / CSI Guidelines
- */
 export interface CHA2DS2VascInput {
   age: number;
   gender: 'M' | 'F' | 'Other';
@@ -97,7 +77,6 @@ export function calculateCHA2DS2VASc(input: CHA2DS2VascInput): {
 
   const score = Object.values(components).reduce((a, b) => a + b, 0);
 
-  // IHRS/CSI threshold: men ≥ 2, women ≥ 3 → anticoagulate
   const threshold = input.gender === 'F' ? 3 : 2;
   const anticoagulate = score >= threshold;
 
@@ -113,10 +92,6 @@ export function calculateCHA2DS2VASc(input: CHA2DS2VascInput): {
   return { score, components, recommendation, anticoagulate };
 }
 
-/**
- * Hyperkalemia Risk Assessment
- * Especially relevant for HF patients on RAASi + MRA
- */
 export function assessHyperkalemiaRisk(
   potassium: number,
   medications: string[],
@@ -140,7 +115,6 @@ export function assessHyperkalemiaRisk(
 
   const riskMedsCount = [onRAASi, onMRA, onKSparing].filter(Boolean).length;
 
-  // Critical: K+ ≥ 5.5 with any K+-sparing drug
   if (potassium >= 5.5) {
     return {
       risk_level: 'critical',
@@ -149,7 +123,6 @@ export function assessHyperkalemiaRisk(
     };
   }
 
-  // High: K+ ≥ 5.0 + RAASi + MRA
   if (potassium >= 5.0 && onRAASi && onMRA) {
     return {
       risk_level: 'high',
@@ -158,7 +131,6 @@ export function assessHyperkalemiaRisk(
     };
   }
 
-  // High: K+ ≥ 5.0 + eGFR < 45 + any K+-sparing
   if (potassium >= 5.0 && egfr < 45 && riskMedsCount >= 1) {
     return {
       risk_level: 'high',
@@ -167,7 +139,6 @@ export function assessHyperkalemiaRisk(
     };
   }
 
-  // Moderate: K+ 4.5-5.0 + risk drugs
   if (potassium >= 4.5 && riskMedsCount >= 2) {
     return {
       risk_level: 'moderate',
@@ -183,9 +154,6 @@ export function assessHyperkalemiaRisk(
   };
 }
 
-/**
- * HbA1c Target Recommendation (RSSDI 2022)
- */
 export function getHbA1cTarget(
   age: number,
   conditions: string[],
@@ -215,9 +183,6 @@ export function getHbA1cTarget(
   };
 }
 
-/**
- * Estimate monthly cost for medication regimen
- */
 export function estimateMonthlyCost(drugs: Array<{ name: string; monthly_cost?: number }>): {
   total: number;
   breakdown: string;
