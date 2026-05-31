@@ -1,7 +1,3 @@
-// ============================================================
-// BRAHMO India Clinical AI — Shared TypeScript Types
-// ============================================================
-
 export interface Drug {
   id: string;
   generic_name: string;
@@ -131,10 +127,6 @@ export interface PatientInsurance {
   notes?: string;
 }
 
-// ============================================================
-// Safety Engine Types
-// ============================================================
-
 export interface SafetyAlert {
   type: 'contraindication' | 'warning' | 'interaction' | 'dose_adjustment' | 'monitoring';
   severity: 'critical' | 'high' | 'moderate' | 'low';
@@ -156,10 +148,6 @@ export interface SafetyCheckResult {
   recommended_monitoring: string[];
 }
 
-// ============================================================
-// Prompt Composer Types
-// ============================================================
-
 export interface ClinicalContext {
   patient: Patient;
   safety_result: SafetyCheckResult;
@@ -177,10 +165,6 @@ export interface ComposedPrompt {
   guideline_sources: string[];
   safety_flags: string[];
 }
-
-// ============================================================
-// API Response Types
-// ============================================================
 
 export interface ComparisonResponse {
   patient: Patient;
