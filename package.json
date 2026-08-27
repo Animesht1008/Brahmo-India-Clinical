@@ -8,6 +8,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint"
+    ,"test-groq": "node test-groq.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.45.0",
