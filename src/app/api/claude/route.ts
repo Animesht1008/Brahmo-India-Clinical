@@ -5,7 +5,7 @@ import { composePrompt, fetchClinicalContext } from '@/lib/prompt-composer';
 import type { Patient } from '@/lib/types';
 
 const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions';
-const MODEL = 'llama-3.3-70b-versatile'; // Free, fast, capable
+const MODEL = process.env.GROQ_MODEL || 'llama-3.3-70b-versatile';
 
 const GENERIC_SYSTEM = `You are a general medical AI assistant. 
 Provide evidence-based clinical guidance for the patient described.
@@ -29,8 +29,14 @@ async function callGroq(systemPrompt: string, userMessage: string, maxTokens = 1
   });
 
   if (!res.ok) {
-    const err = await res.json();
-    throw new Error(err?.error?.message || `Groq API error: ${res.status}`);
+    const err = await res.json().catch(() => ({}));
+    const message = err?.error?.message || err?.message || `Groq API error: ${res.status}`;
+    if (/does not exist|do not have access/i.test(message)) {
+      throw new Error(
+        `${message} — The model "${MODEL}" appears unavailable. Set a valid model via GROQ_MODEL in .env.local or get access at https://console.groq.com.`
+      );
+    }
+    throw new Error(message);
   }
 
   const data = await res.json();
