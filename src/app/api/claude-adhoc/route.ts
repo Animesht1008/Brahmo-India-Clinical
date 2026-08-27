@@ -7,7 +7,7 @@ const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions';
 const MODEL = process.env.GROQ_MODEL || 'llama-3.3-70b-versatile';
 const GENERIC_SYSTEM = `You are a general medical AI assistant. Provide evidence-based clinical guidance for the patient described.`;
 
-async function callGroq(systemPrompt: string, userMessage: string, maxTokens = 1500): Promise<string> {
+async function callGroq(systemPrompt: string, userMessage: string, maxTokens = 1500, model = MODEL): Promise<string> {
   const res = await fetch(GROQ_API_URL, {
     method: 'POST',
     headers: {
@@ -15,7 +15,7 @@ async function callGroq(systemPrompt: string, userMessage: string, maxTokens = 1
       'Authorization': `Bearer ${process.env.GROQ_API_KEY}`,
     },
     body: JSON.stringify({
-      model: MODEL,
+      model,
       max_tokens: maxTokens,
       messages: [
         { role: 'system', content: systemPrompt },
@@ -24,17 +24,33 @@ async function callGroq(systemPrompt: string, userMessage: string, maxTokens = 1
     }),
   });
   if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
+   const err = await res.json().catch(() => ({}));
     const message = err?.error?.message || err?.message || `Groq API error: ${res.status}`;
-    if (/does not exist|do not have access/i.test(message)) {
-      throw new Error(
-        `${message} — The model "${MODEL}" appears unavailable. Set a valid model via GROQ_MODEL in .env.local or get access at https://console.groq.com.`
-      );
-    }
     throw new Error(message);
   }
   const data = await res.json();
   return data.choices?.[0]?.message?.content || '';
+}
+
+async function callGroqWithFallback(systemPrompt: string, userMessage: string, maxTokens = 1500): Promise<string> {
+  try {
+    return await callGroq(systemPrompt, userMessage, maxTokens, MODEL);
+  } catch (err: any) {
+    const msg = err?.message || '';
+    if (/does not exist|do not have access/i.test(msg) && process.env.GROQ_FALLBACK_MODELS) {
+      const fallbacks = process.env.GROQ_FALLBACK_MODELS.split(',').map(s => s.trim()).filter(Boolean);
+      for (const fb of fallbacks) {
+        try {
+          const out = await callGroq(systemPrompt, userMessage, maxTokens, fb);
+          return out;
+        } catch (e) {
+          console.warn(`[Groq fallback] model ${fb} failed:`, (e as any)?.message || e);
+        }
+      }
+      throw new Error(`${msg} — tried fallbacks: ${fallbacks.join(', ')}`);
+    }
+    throw err;
+  }
 }
 
 export async function POST(req: NextRequest) {
@@ -79,8 +95,8 @@ Allergies: ${(p.allergies || []).map((a: any) => `${a.drug}(${a.reaction})`).joi
 Question: ${query}`;
 
     const [genericText, optionCText] = await Promise.all([
-      callGroq(GENERIC_SYSTEM, genericSummary, 1200),
-      callGroq(composed.system_prompt, composed.user_message, 2000),
+      callGroqWithFallback(GENERIC_SYSTEM, genericSummary, 1200),
+      callGroqWithFallback(composed.system_prompt, composed.user_message, 2000),
     ]);
 
     return NextResponse.json({
