@@ -31,11 +31,6 @@ async function callGroq(systemPrompt: string, userMessage: string, maxTokens = 1
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
     const message = err?.error?.message || err?.message || `Groq API error: ${res.status}`;
-    if (/does not exist|do not have access/i.test(message)) {
-      throw new Error(
-        `${message} — The model "${MODEL}" appears unavailable. Set a valid model via GROQ_MODEL in .env.local or get access at https://console.groq.com.`
-      );
-    }
     throw new Error(message);
   }
 
