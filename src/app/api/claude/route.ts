@@ -11,7 +11,7 @@ const GENERIC_SYSTEM = `You are a general medical AI assistant.
 Provide evidence-based clinical guidance for the patient described.
 Do not tailor advice specifically to India or any particular region.`;
 
-async function callGroq(systemPrompt: string, userMessage: string, maxTokens = 1500): Promise<string> {
+async function callGroq(systemPrompt: string, userMessage: string, maxTokens = 1500, model = MODEL): Promise<string> {
   const res = await fetch(GROQ_API_URL, {
     method: 'POST',
     headers: {
@@ -19,7 +19,7 @@ async function callGroq(systemPrompt: string, userMessage: string, maxTokens = 1
       'Authorization': `Bearer ${process.env.GROQ_API_KEY}`,
     },
     body: JSON.stringify({
-      model: MODEL,
+      model,
       max_tokens: maxTokens,
       messages: [
         { role: 'system', content: systemPrompt },
@@ -41,6 +41,28 @@ async function callGroq(systemPrompt: string, userMessage: string, maxTokens = 1
 
   const data = await res.json();
   return data.choices?.[0]?.message?.content || '';
+}
+
+async function callGroqWithFallback(systemPrompt: string, userMessage: string, maxTokens = 1500): Promise<string> {
+  try {
+    return await callGroq(systemPrompt, userMessage, maxTokens, MODEL);
+  } catch (err: any) {
+    const msg = err?.message || '';
+    if (/does not exist|do not have access/i.test(msg) && process.env.GROQ_FALLBACK_MODELS) {
+      const fallbacks = process.env.GROQ_FALLBACK_MODELS.split(',').map(s => s.trim()).filter(Boolean);
+      for (const fb of fallbacks) {
+        try {
+          const out = await callGroq(systemPrompt, userMessage, maxTokens, fb);
+          return out;
+        } catch (e) {
+          // try next fallback
+          console.warn(`[Groq fallback] model ${fb} failed:`, (e as any)?.message || e);
+        }
+      }
+      throw new Error(`${msg} — tried fallbacks: ${fallbacks.join(', ')}`);
+    }
+    throw err;
+  }
 }
 
 export async function POST(req: NextRequest) {
@@ -89,8 +111,8 @@ Question: ${query}`;
 
     // Call Groq in parallel for both generic and Option C
     const [genericText, optionCText] = await Promise.all([
-      callGroq(GENERIC_SYSTEM, genericSummary, 1200),
-      callGroq(composed.system_prompt, composed.user_message, 2000),
+      callGroqWithFallback(GENERIC_SYSTEM, genericSummary, 1200),
+      callGroqWithFallback(composed.system_prompt, composed.user_message, 2000),
     ]);
 
     return NextResponse.json({
